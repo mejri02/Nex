@@ -1,4 +1,4 @@
-/// Endpoints observed in the KOBANI 4K APK.
+/// Remote endpoints used by the app.
 /// Availability, authorization requirements and permitted use must be verified.
 class ApiConfig {
   static const beenarBase = 'https://beenar.net';

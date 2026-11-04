@@ -13,7 +13,15 @@ Future<void> openPlayer(BuildContext context, List<Channel> playlist, int index)
   if (playlist.isEmpty) return Future.value();
   final i = index < 0 ? 0 : (index >= playlist.length ? playlist.length - 1 : index);
   return Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => PlayerPage(playlist: playlist, index: i)),
+    PageRouteBuilder<void>(
+      transitionDuration: const Duration(milliseconds: 260),
+      reverseTransitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (_, __, ___) => PlayerPage(playlist: playlist, index: i),
+      transitionsBuilder: (_, anim, __, child) => FadeTransition(
+        opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+        child: child,
+      ),
+    ),
   );
 }
 
@@ -85,6 +93,7 @@ class _PlayerPageState extends State<PlayerPage> {
   bool _modal = false;
   int fitIdx = 0;
   double vol = 100;
+  double _lastVol = 100;
   double dim = 0; // 0 = normal, up to .75 = dark
   int sleepMin = 0;
   double? _dragValue;
@@ -698,7 +707,10 @@ class _PlayerPageState extends State<PlayerPage> {
               fit: StackFit.expand,
               children: [
                 // ---- video
-                Video(
+                AnimatedOpacity(
+                  opacity: _started ? 1 : 0,
+                  duration: const Duration(milliseconds: 350),
+                  child: Video(
                   controller: video,
                   controls: NoVideoControls,
                   fit: fit,
@@ -714,6 +726,7 @@ class _PlayerPageState extends State<PlayerPage> {
                     ),
                     textAlign: TextAlign.center,
                     padding: EdgeInsets.fromLTRB(24, 0, 24, controls ? 96 : 32),
+                  ),
                   ),
                 ),
 
@@ -899,6 +912,19 @@ class _PlayerPageState extends State<PlayerPage> {
                           ),
                         ),
                         if (res.isNotEmpty) _badge(res, cs.primary),
+                        _iconBtn(
+                          vol == 0 ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                          () {
+                            if (vol > 0) {
+                              _lastVol = vol;
+                              player.setVolume(0);
+                            } else {
+                              player.setVolume(_lastVol > 0 ? _lastVol : 100);
+                            }
+                            setState(() {});
+                            _show();
+                          },
+                        ),
                         _iconBtn(
                           fav ? Icons.star_rounded : Icons.star_border_rounded,
                           () {

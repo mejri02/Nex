@@ -34,6 +34,7 @@ class FavoritesPage extends StatelessWidget {
                 ? EmptyState(icon: Icons.star_border_rounded, title: c.t('noFavs'), subtitle: c.t('noFavsSub'))
                 : c.gridView
                     ? GridView.builder(
+                            cacheExtent: 800,
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: wide > 700 ? 150 : 120,

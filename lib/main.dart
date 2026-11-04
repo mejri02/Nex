@@ -12,17 +12,17 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
   final controller = await AppController.create();
-  runApp(AppScope(controller: controller, child: const KobaniApp()));
+  runApp(AppScope(controller: controller, child: const VyraApp()));
 }
 
-class KobaniApp extends StatefulWidget {
-  const KobaniApp({super.key});
+class VyraApp extends StatefulWidget {
+  const VyraApp({super.key});
 
   @override
-  State<KobaniApp> createState() => _KobaniAppState();
+  State<VyraApp> createState() => _VyraAppState();
 }
 
-class _KobaniAppState extends State<KobaniApp> {
+class _VyraAppState extends State<VyraApp> {
   bool _started = false;
 
   @override
@@ -37,7 +37,7 @@ class _KobaniAppState extends State<KobaniApp> {
     final theme = buildTheme(spec, Color(kAccents[c.accentIdx]));
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'KOBANI 4K',
+      title: 'Vyra TV',
       theme: theme,
       builder: (context, child) => Directionality(
         textDirection: c.rtl ? TextDirection.rtl : TextDirection.ltr,

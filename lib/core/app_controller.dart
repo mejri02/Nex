@@ -49,7 +49,7 @@ class AppController extends ChangeNotifier {
   String pin = '';
 
   List<SourceConfig> sources = [
-    const SourceConfig(id: SourceConfig.builtinId, name: 'KOBANI 4K', type: 'builtin'),
+    const SourceConfig(id: SourceConfig.builtinId, name: 'Vyra TV', type: 'builtin'),
   ];
   String activeId = SourceConfig.builtinId;
 
@@ -109,7 +109,7 @@ class AppController extends ChangeNotifier {
       } catch (_) {}
     }
     if (!sources.any((s) => s.builtin)) {
-      sources = [const SourceConfig(id: SourceConfig.builtinId, name: 'KOBANI 4K', type: 'builtin'), ...sources];
+      sources = [const SourceConfig(id: SourceConfig.builtinId, name: 'Vyra TV', type: 'builtin'), ...sources];
     }
     if (!kEnableCustomSources) {
       sources = [sources.firstWhere((s) => s.builtin)];

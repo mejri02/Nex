@@ -111,6 +111,7 @@ class _ChannelsPageState extends State<ChannelsPage> {
                       )
                     : c.gridView
                         ? GridView.builder(
+                            cacheExtent: 800,
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                             gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                               maxCrossAxisExtent: wide > 700 ? 150 : 120,

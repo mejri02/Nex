@@ -1,4 +1,4 @@
-# KOBANI 4K Media Kit source
+# Vyra TV
 
 Flutter Android live-TV client using Media Kit.
 - Loads `managedPlaylist` from the configured API.

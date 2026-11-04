@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/app_controller.dart';
 import '../core/models.dart';
@@ -46,8 +47,18 @@ class _TappableState extends State<Tappable> {
             type: MaterialType.transparency,
             child: InkWell(
               autofocus: widget.autofocus,
-              onTap: widget.onTap,
-              onLongPress: widget.onLongPress,
+              onTap: widget.onTap == null
+                  ? null
+                  : () {
+                      HapticFeedback.selectionClick();
+                      widget.onTap!();
+                    },
+              onLongPress: widget.onLongPress == null
+                  ? null
+                  : () {
+                      HapticFeedback.mediumImpact();
+                      widget.onLongPress!();
+                    },
               onFocusChange: (v) => setState(() => _focused = v),
               child: widget.child,
             ),
@@ -103,6 +114,7 @@ class Logo extends StatelessWidget {
                     fit: BoxFit.contain,
                     cacheWidth: (size * 3).round(),
                     filterQuality: FilterQuality.medium,
+                    gaplessPlayback: true,
                     errorBuilder: (_, __, ___) => fallback,
                     loadingBuilder: (c, child, p) => p == null ? child : fallback,
                   ),

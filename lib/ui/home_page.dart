@@ -133,8 +133,8 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  const Text('KOBANI ', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                  Text('4K', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: cs.primary)),
+                  const Text('VYRA ', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                  Text('TV', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: cs.primary)),
                 ]),
                 Text(
                   c.activeSource.name,

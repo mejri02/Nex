@@ -1,4 +1,4 @@
-name: Build KOBANI 4K Android APK
+name: Build Vyra TV Android APK
 on:
   workflow_dispatch:
   push:
@@ -19,7 +19,7 @@ jobs:
           channel: stable
           cache: true
       - name: Generate Android platform
-        run: flutter create --platforms=android --org com.kobani4k.v2 .
+        run: flutter create --platforms=android --org com.vyra.tv .
       - name: Patch Android manifest (internet, http streams, Android TV)
         run: |
           python3 - <<'PY'
@@ -34,7 +34,7 @@ jobs:
           s = s.replace('<application', extra + '    <application', 1)
           if 'usesCleartextTraffic' not in s:
               s = s.replace('<application', '<application android:usesCleartextTraffic="true"', 1)
-          s = re.sub(r'android:label="[^"]*"', 'android:label="KOBANI 4K"', s, count=1)
+          s = re.sub(r'android:label="[^"]*"', 'android:label="Vyra TV"', s, count=1)
           launcher = '<category android:name="android.intent.category.LAUNCHER"/>'
           if launcher in s and 'LEANBACK_LAUNCHER' not in s:
               s = s.replace(launcher, launcher + '\n                <category android:name="android.intent.category.LEANBACK_LAUNCHER"/>', 1)
@@ -46,6 +46,6 @@ jobs:
       - run: flutter build apk --release --split-per-abi
       - uses: actions/upload-artifact@v4
         with:
-          name: kobani4k-release-apks
+          name: vyra-tv-release-apks
           path: build/app/outputs/flutter-apk/*-release.apk
           if-no-files-found: error

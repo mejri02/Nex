@@ -224,7 +224,7 @@ class SettingsPage extends StatelessWidget {
 
           // ------------------------------------------------ about
           _Section(icon: Icons.info_outline_rounded, title: c.t('about'), children: [
-            const Text('KOBANI 4K · 2.0.0', style: TextStyle(fontWeight: FontWeight.w700)),
+            const Text('Vyra TV · 2.0.0', style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Text(c.t('disclaimer'), style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.5, height: 1.4)),
           ]),

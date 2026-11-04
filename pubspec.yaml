@@ -1,5 +1,5 @@
-name: kobani4k
-description: KOBANI 4K live TV player
+name: vyra_tv
+description: Vyra TV live player
 publish_to: 'none'
 version: 2.0.0+2
 environment:
