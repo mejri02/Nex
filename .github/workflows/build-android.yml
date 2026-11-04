@@ -2,7 +2,7 @@ name: Build Vyra TV Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, master]
+    branches: [main, master, feature/live-tv-redesign]
 permissions:
   contents: read
 jobs:
@@ -43,9 +43,9 @@ jobs:
           PY
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings lib
-      - run: flutter build apk --release --split-per-abi
+      - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
           name: vyra-tv-release-apks
-          path: build/app/outputs/flutter-apk/*-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error

@@ -66,11 +66,13 @@ class _PlayerPageState extends State<PlayerPage> {
   final Set<int> _failed = {};
   int _attempt = 0;
   int _reconnects = 0;
+  DateTime _ignoreErrorsUntil = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastStart = DateTime.now();
   bool _started = false;
   bool _historyAdded = false;
   bool _audioPicked = false;
   Timer? _watchdog;
+  Timer? _stallWatchdog;
 
   // player state
   bool playing = false;
@@ -119,7 +121,7 @@ class _PlayerPageState extends State<PlayerPage> {
     ch = widget.playlist[index];
     sources = ch.sources;
     fitIdx = app.fitIdx;
-    _landscape = app.landscape;
+    _landscape = false;
     final startOffset = index * 64.0 - 120;
     _panelScroll = ScrollController(initialScrollOffset: startOffset < 0 ? 0.0 : startOffset);
 
@@ -134,14 +136,24 @@ class _PlayerPageState extends State<PlayerPage> {
       player.stream.playing.listen((v) {
         if (!mounted) return;
         setState(() => playing = v);
+        if (v) _maybeMarkStarted();
         _scheduleHide();
       }),
       player.stream.buffering.listen((v) {
-        if (mounted) setState(() => buffering = v);
+        if (!mounted) return;
+        setState(() => buffering = v);
+        _stallWatchdog?.cancel();
+        if (v && _started) {
+          _stallWatchdog = Timer(const Duration(seconds: 20), () {
+            if (!mounted || !_started || !buffering) return;
+            _started = false;
+            _fail(selected, _attempt, app.t('timeout'));
+          });
+        }
       }),
       player.stream.position.listen((v) {
         position.value = v;
-        if (!_started && v > Duration.zero) _markStarted();
+        if (v > Duration.zero) _maybeMarkStarted();
       }),
       player.stream.buffer.listen((v) => bufferPos.value = v),
       player.stream.duration.listen((v) {
@@ -150,7 +162,7 @@ class _PlayerPageState extends State<PlayerPage> {
       player.stream.width.listen((v) {
         if (!mounted) return;
         setState(() => vidW = v ?? 0);
-        if ((v ?? 0) > 0) _markStarted();
+        if ((v ?? 0) > 0) _maybeMarkStarted();
       }),
       player.stream.height.listen((v) {
         if (mounted) setState(() => vidH = v ?? 0);
@@ -171,14 +183,15 @@ class _PlayerPageState extends State<PlayerPage> {
       player.stream.completed.listen(_onCompleted),
     ]);
 
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    _applyOrientation();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
     WidgetsBinding.instance.addPostFrameCallback((_) => _open(0));
   }
 
   @override
   void dispose() {
     _watchdog?.cancel();
+    _stallWatchdog?.cancel();
     _hide?.cancel();
     _sleep?.cancel();
     _flashTimer?.cancel();
@@ -191,19 +204,23 @@ class _PlayerPageState extends State<PlayerPage> {
     _panelScroll.dispose();
     player.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setPreferredOrientations(const []);
+    SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
     super.dispose();
   }
 
   // ------------------------------------------------------------ orientation
   void _applyOrientation() {
-    SystemChrome.setPreferredOrientations(
-      _landscape
-          ? const [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]
-          : const [DeviceOrientation.portraitUp],
-    );
+    if (_landscape) {
+      // Lock to one landscape direction to prevent an opposite-side rotation.
+      SystemChrome.setPreferredOrientations(const [DeviceOrientation.landscapeLeft]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
   }
 
+  // Full-screen is an explicit user action; opening a channel stays portrait.
   void _toggleOrientation() {
     setState(() => _landscape = !_landscape);
     _applyOrientation();
@@ -214,6 +231,7 @@ class _PlayerPageState extends State<PlayerPage> {
   Future<void> _open(int srcIdx) async {
     if (!mounted) return;
     final attempt = ++_attempt;
+    _ignoreErrorsUntil = DateTime.now().add(const Duration(milliseconds: 900));
     _watchdog?.cancel();
     final s = sources[srcIdx];
     _started = false;
@@ -221,6 +239,8 @@ class _PlayerPageState extends State<PlayerPage> {
     setState(() {
       selected = srcIdx;
       loading = true;
+      playing = false;
+      buffering = false;
       error = null;
       vidW = 0;
       vidH = 0;
@@ -232,6 +252,10 @@ class _PlayerPageState extends State<PlayerPage> {
     }
     _watchdog = Timer(const Duration(seconds: 25), () => _fail(srcIdx, attempt, app.t('timeout')));
     try {
+      // Stop the old source so delayed events cannot mark it as the new source.
+      await player.stop();
+      if (!mounted || attempt != _attempt) return;
+      _ignoreErrorsUntil = DateTime.now().add(const Duration(milliseconds: 900));
       final headers = <String, String>{
         if (s.userAgent.isNotEmpty) 'User-Agent': s.userAgent,
         if (s.referer.isNotEmpty) 'Referer': s.referer,
@@ -242,10 +266,16 @@ class _PlayerPageState extends State<PlayerPage> {
     }
   }
 
+  void _maybeMarkStarted() {
+    // Ignore stale stream events until the current source is actually playing.
+    if (playing && vidW > 0) _markStarted();
+  }
+
   void _markStarted() {
     if (_started || !mounted) return;
     _started = true;
     _watchdog?.cancel();
+    _stallWatchdog?.cancel();
     _lastStart = DateTime.now();
     if (!_historyAdded) {
       _historyAdded = true;
@@ -260,30 +290,41 @@ class _PlayerPageState extends State<PlayerPage> {
   void _fail(int srcIdx, int attempt, String reason) {
     if (!mounted || attempt != _attempt || _started) return;
     _watchdog?.cancel();
+    _stallWatchdog?.cancel();
     _failed.add(srcIdx);
-    final next = app.failover
-        ? List<int>.generate(sources.length, (i) => i).firstWhere((i) => !_failed.contains(i), orElse: () => -1)
-        : -1;
+    // Live TV always advances to the next available server after a failure.
+    var next = -1;
+    for (var step = 1; step <= sources.length; step++) {
+      final candidate = (srcIdx + step) % sources.length;
+      if (!_failed.contains(candidate)) {
+        next = candidate;
+        break;
+      }
+    }
     if (next != -1) {
       _flash(Icons.swap_horiz_rounded, '${app.t('switching')} ${sources[next].name}');
       _open(next);
     } else {
       setState(() {
         loading = false;
-        error = sources.length > 1 && app.failover ? '${app.t('allFailed')}\n$reason' : reason;
+        error = sources.length > 1 ? '${app.t('allFailed')}\n$reason' : reason;
       });
       _show();
     }
   }
 
   void _onError(String e) {
-    if (!mounted || _started) return; // errors while playing are handled by "completed"
+    if (!mounted || DateTime.now().isBefore(_ignoreErrorsUntil)) return;
+    // Network/decoder errors can happen after the first frame too.
+    _started = false;
     _fail(selected, _attempt, e);
   }
 
   void _onCompleted(bool done) {
-    if (!done || !mounted || !_started) return;
-    if (isLive && app.autoReconnect) _reconnect();
+    if (!done || !mounted || !_started || !isLive) return;
+    // An unexpectedly ended live stream is a source failure; switch now.
+    _started = false;
+    _fail(selected, _attempt, app.t('playFailed'));
   }
 
   Future<void> _reconnect() async {
@@ -999,7 +1040,12 @@ class _PlayerPageState extends State<PlayerPage> {
                                       tip: app.t('more'),
                                       color: sleepMin > 0 || rate != 1 ? cs.primary : Colors.white,
                                     ),
-                                    _iconBtn(Icons.screen_rotation_rounded, _toggleOrientation, size: 42),
+                                    _iconBtn(
+                                      _landscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                                      _toggleOrientation,
+                                      size: 42,
+                                      tip: _landscape ? app.t('exitFullscreen') : app.t('fullscreen'),
+                                    ),
                                     _iconBtn(Icons.lock_outline_rounded, () => setState(() => locked = true), size: 42, tip: app.t('lock')),
                                     if (multi)
                                       _iconBtn(Icons.format_list_bulleted_rounded, () {

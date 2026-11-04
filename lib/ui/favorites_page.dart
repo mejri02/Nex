@@ -18,15 +18,41 @@ class FavoritesPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: AlignmentDirectional.centerStart,
+                  end: AlignmentDirectional.centerEnd,
+                  colors: [Theme.of(context).colorScheme.primary.withValues(alpha: 0.18), Theme.of(context).colorScheme.surface.withValues(alpha: 0.78)],
+                ),
+                border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.16)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
               children: [
-                Expanded(child: Text(c.t('favorites'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900))),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(c.t('favorites'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${favs.length} · ${c.t('items')}',
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
                 IconButton(
                   onPressed: () => c.setGrid(!c.gridView),
                   icon: Icon(c.gridView ? Icons.view_list_rounded : Icons.grid_view_rounded),
                 ),
               ],
+                ),
+              ),
             ),
           ),
           Expanded(

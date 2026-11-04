@@ -47,7 +47,48 @@ class _ChannelsPageState extends State<ChannelsPage> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 8, 6),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: AlignmentDirectional.centerStart,
+                  end: AlignmentDirectional.centerEnd,
+                  colors: [cs.primary.withValues(alpha: 0.16), cs.surface.withValues(alpha: 0.72)],
+                ),
+                border: Border.all(color: cs.primary.withValues(alpha: 0.14)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(c.t('channels'), style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${c.totalCount} · ${c.activeSource.name}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton.filledTonal(
+                  tooltip: c.t('refreshNow'),
+                  onPressed: c.loading ? null : () => c.loadChannels(force: true),
+                  icon: const Icon(Icons.refresh_rounded),
+                ),
+              ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
             child: Row(
               children: [
                 Expanded(

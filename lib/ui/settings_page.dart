@@ -84,12 +84,12 @@ class SettingsPage extends StatelessWidget {
               value: c.hwAccel,
               onChanged: c.setHw,
             ),
-            SwitchListTile(
+            ListTile(
               contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.swap_horiz_rounded),
               title: Text(c.t('failover')),
-              subtitle: Text(c.t('failoverSub'), style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.5)),
-              value: c.failover,
-              onChanged: c.setFailover,
+              subtitle: Text(c.t('failoverAlwaysOn'), style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.5)),
+              trailing: const Icon(Icons.check_circle_rounded, color: Colors.green),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -98,12 +98,7 @@ class SettingsPage extends StatelessWidget {
               value: c.autoReconnect,
               onChanged: c.setAutoReconnect,
             ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(c.t('landscape')),
-              value: c.landscape,
-              onChanged: c.setLandscape,
-            ),
+
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(c.t('gestures')),
@@ -224,7 +219,7 @@ class SettingsPage extends StatelessWidget {
 
           // ------------------------------------------------ about
           _Section(icon: Icons.info_outline_rounded, title: c.t('about'), children: [
-            const Text('Vyra TV · 2.0.0', style: TextStyle(fontWeight: FontWeight.w700)),
+            const Text('Vyra TV · 2.1.0', style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             Text(c.t('disclaimer'), style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.5, height: 1.4)),
           ]),

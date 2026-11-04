@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 
 import 'core/app_controller.dart';
@@ -10,6 +11,8 @@ import 'ui/settings_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   MediaKit.ensureInitialized();
   final controller = await AppController.create();
   runApp(AppScope(controller: controller, child: const VyraApp()));
@@ -77,6 +80,7 @@ class _ShellState extends State<Shell> {
     final pages = <Widget>[
       HomePage(
         onOpenChannels: () => _go(1),
+        onOpenFavorites: () => _go(2),
         onOpenGroup: (g) {
           c.setGroupFilter(g);
           _go(1);
