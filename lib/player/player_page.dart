@@ -277,13 +277,21 @@ class _PlayerPageState extends State<PlayerPage> {
   }
 
   void _onError(String e) {
-    if (!mounted || _started) return; // errors while playing are handled by "completed"
+    if (!mounted) return;
+    // Network/decoder errors can happen after the first frame too.
+    _started = false;
     _fail(selected, _attempt, e);
   }
 
   void _onCompleted(bool done) {
     if (!done || !mounted || !_started) return;
-    if (isLive && app.autoReconnect) _reconnect();
+    if (!isLive) return;
+    if (app.autoReconnect) {
+      _reconnect();
+    } else {
+      _started = false;
+      _fail(selected, _attempt, app.t('playFailed'));
+    }
   }
 
   Future<void> _reconnect() async {
