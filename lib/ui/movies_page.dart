@@ -41,7 +41,7 @@ class _MoviesPageState extends State<MoviesPage> {
       _error = null;
     });
     try {
-      final movies = await _service.fetchKurdfilmMovies();
+      final movies = await _service.fetchMovies();
       if (!mounted || request != _request) return;
       setState(() {
         _movies = movies;
@@ -73,7 +73,7 @@ class _MoviesPageState extends State<MoviesPage> {
       barrierDismissible: false,
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
-    final details = await _service.fetchKurdfilmDetails(movie);
+    final details = await _service.fetchMovieDetails(movie);
     if (!mounted) return;
     Navigator.of(context, rootNavigator: true).pop();
     if (details == null || details.servers.isEmpty) {
