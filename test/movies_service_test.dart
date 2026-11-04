@@ -9,18 +9,16 @@ import 'package:vyra_tv/services/movies_service.dart';
 void main() {
   group('MoviesService series support', () {
     test('loads movie and series catalog entries independently', () async {
+      final requestedKinds = <String>[];
       final client = MockClient((request) async {
         final kind = request.url.queryParameters['kind'];
-        if (request.url.host == 'app.kurdfilm.krd' && kind == 'movie') {
+        if (request.url.host == 'app.kurdfilm.krd') {
+          requestedKinds.add(kind ?? '');
           return http.Response(jsonEncode({
             'data': [
               {'id': 'movie-1', 'title': 'Demo Movie', 'type': 'movie'},
-            ],
-          }), 200);
-        }
-        if (request.url.host == 'app.kurdfilm.krd' && kind == 'series') {
-          return http.Response(jsonEncode({
-            'data': [
+              // Simulate a provider response that includes series even when
+              // the catalog request asks for movies. Explicit API type wins.
               {'id': 'show-1', 'title': 'Demo Series', 'type': 'series'},
             ],
           }), 200);
@@ -40,6 +38,7 @@ void main() {
       final service = MoviesService(client: client);
       final items = await service.fetchMovies();
       expect(items.map((item) => item.id), containsAll(['movie-1', 'show-1']));
+      expect(requestedKinds, ['movie']);
       expect(items.firstWhere((item) => item.id == 'show-1').kind, 'series');
       expect(items.firstWhere((item) => item.id == '123').kind, 'series');
       service.close();
