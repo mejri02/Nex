@@ -77,6 +77,7 @@ class _ShellState extends State<Shell> {
     final pages = <Widget>[
       HomePage(
         onOpenChannels: () => _go(1),
+        onOpenFavorites: () => _go(2),
         onOpenGroup: (g) {
           c.setGroupFilter(g);
           _go(1);
