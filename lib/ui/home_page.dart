@@ -123,10 +123,7 @@ class HomePage extends StatelessWidget {
                     children: [
                       Expanded(child: _QuickAction(icon: Icons.grid_view_rounded, title: c.t('channels'), value: '${c.totalCount}', onTap: onOpenChannels)),
                       const SizedBox(width: 10),
-                      Expanded(child: _QuickAction(icon: Icons.star_rounded, title: c.t('favorites'), value: '${c.favorites.length}', onTap: () {
-                        // Favorites are also reachable from the persistent navigation bar.
-                        Navigator.of(context).maybePop();
-                      })),
+                      Expanded(child: _QuickAction(icon: Icons.star_rounded, title: c.t('favorites'), value: '${c.favorites.length}', onTap: onOpenFavorites)),
                     ],
                   ),
                 ),
