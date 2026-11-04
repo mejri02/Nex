@@ -141,9 +141,9 @@ class _PlayerPageState extends State<PlayerPage> {
         if (!mounted) return;
         setState(() => buffering = v);
         _stallWatchdog?.cancel();
-        if (v && _started && playing) {
+        if (v && _started) {
           _stallWatchdog = Timer(const Duration(seconds: 20), () {
-            if (!mounted || !_started || !buffering || !playing) return;
+            if (!mounted || !_started || !buffering) return;
             _started = false;
             _fail(selected, _attempt, app.t('timeout'));
           });
