@@ -6,9 +6,10 @@ import '../player/player_page.dart';
 import 'widgets.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.onOpenGroup, required this.onOpenChannels});
+  const HomePage({super.key, required this.onOpenGroup, required this.onOpenChannels, required this.onOpenFavorites});
   final void Function(String group) onOpenGroup;
   final VoidCallback onOpenChannels;
+  final VoidCallback onOpenFavorites;
 
   @override
   Widget build(BuildContext context) {
