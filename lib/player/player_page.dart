@@ -70,6 +70,7 @@ class _PlayerPageState extends State<PlayerPage> {
   bool _started = false;
   bool _historyAdded = false;
   bool _audioPicked = false;
+  bool _arabicSubtitlePicked = false;
   Timer? _watchdog;
 
   // player state
@@ -159,6 +160,7 @@ class _PlayerPageState extends State<PlayerPage> {
         if (!mounted) return;
         setState(() => tracks = t);
         _autoPickAudio(t);
+        _autoPickArabicSubtitle(t);
       }),
       player.stream.track.listen((t) {
         if (mounted) setState(() => curTrack = t);
@@ -344,6 +346,26 @@ class _PlayerPageState extends State<PlayerPage> {
       final title = (a.title ?? '').toLowerCase();
       if (l.startsWith(want) || title.contains(want)) {
         player.setAudioTrack(a);
+        return;
+      }
+    }
+  }
+
+  void _autoPickArabicSubtitle(Tracks t) {
+    if (_arabicSubtitlePicked) return;
+    final real = t.subtitle.where((s) => s.id != 'auto' && s.id != 'no').toList();
+    for (final subtitle in real) {
+      final language = (subtitle.language ?? '').toLowerCase().replaceAll('_', '-');
+      final title = (subtitle.title ?? '').toLowerCase();
+      final isArabic = language == 'ar' ||
+          language.startsWith('ar-') ||
+          language == 'ara' ||
+          title.contains('arabic') ||
+          title.contains('العربية') ||
+          title.contains('عربي');
+      if (isArabic) {
+        _arabicSubtitlePicked = true;
+        player.setSubtitleTrack(subtitle);
         return;
       }
     }
