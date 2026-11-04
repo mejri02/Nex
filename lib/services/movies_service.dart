@@ -15,6 +15,8 @@ class MovieItem {
     this.rating,
     this.releaseDate = '',
     this.genres = const [],
+    this.kind = 'movie',
+    this.overview = '',
   });
 
   final String id;
@@ -25,6 +27,26 @@ class MovieItem {
   final double? rating;
   final String releaseDate;
   final List<String> genres;
+  final String kind;
+  final String overview;
+}
+
+class MovieEpisode {
+  const MovieEpisode({required this.seasonNumber, required this.episodeNumber, required this.title, this.overview = '', this.poster = '', this.servers = const []});
+  final int seasonNumber;
+  final int episodeNumber;
+  final String title;
+  final String overview;
+  final String poster;
+  final List<MovieServer> servers;
+}
+
+class MovieSeason {
+  const MovieSeason({required this.number, required this.title, this.poster = '', this.episodes = const []});
+  final int number;
+  final String title;
+  final String poster;
+  final List<MovieEpisode> episodes;
 }
 
 class MovieServer {
@@ -34,9 +56,10 @@ class MovieServer {
 }
 
 class MovieDetails {
-  const MovieDetails({required this.movie, this.servers = const []});
+  const MovieDetails({required this.movie, this.servers = const [], this.seasons = const []});
   final MovieItem movie;
   final List<MovieServer> servers;
+  final List<MovieSeason> seasons;
 }
 
 /// Aggregates public movie metadata. Provider playback links are only exposed
@@ -48,6 +71,7 @@ class MoviesService {
   Future<List<MovieItem>> fetchMovies() async {
     final results = await Future.wait<List<MovieItem>>([
       _tryLoad(fetchKurdfilmMovies),
+      _tryLoad(fetchKurdfilmSeries),
       _tryLoad(fetchMoviesKurdishMovies),
     ]);
     final unique = <String, MovieItem>{};
@@ -67,17 +91,29 @@ class MoviesService {
     }
   }
 
-  Future<List<MovieItem>> fetchKurdfilmMovies({int page = 1, int perPage = 100}) async {
+  Future<List<MovieItem>> fetchKurdfilmMovies({int page = 1, int perPage = 100}) =>
+      _fetchKurdfilmCatalog(kind: 'movie', page: page, perPage: perPage);
+
+  /// Best-effort series query on the same titles collection. Unsupported
+  /// kinds are isolated by _tryLoad and do not break the movie catalog.
+  Future<List<MovieItem>> fetchKurdfilmSeries({int page = 1, int perPage = 100}) =>
+      _fetchKurdfilmCatalog(kind: 'series', page: page, perPage: perPage);
+
+  Future<List<MovieItem>> _fetchKurdfilmCatalog({
+    required String kind,
+    int page = 1,
+    int perPage = 100,
+  }) async {
     final uri = Uri.parse('${ApiConfig.kurdfilmBase}${ApiConfig.kurdfilmTitles}')
         .replace(queryParameters: {
-      'kind': 'movie',
+      'kind': kind,
       'sort': 'newest',
       'per_page': '$perPage',
       'page': '$page',
     });
     final json = await _getJson(uri);
     return _extractList(json)
-        .map((row) => _movieFromMap(row, provider: 'KURDFILM'))
+        .map((row) => _movieFromMap(row, provider: 'KURDFILM', fallbackKind: kind))
         .whereType<MovieItem>()
         .toList(growable: false);
   }
@@ -101,6 +137,12 @@ class MoviesService {
       final id = idMatch?.group(1) ?? '';
       final title = _text(entry['title']);
       if (id.isEmpty || title.isEmpty) continue;
+      final categories = (entry['category'] is List ? entry['category'] as List : const [])
+          .map(_text)
+          .join(' ');
+      final kind = RegExp(r'(series|show|tv|مسلسل|حلقات)', caseSensitive: false).hasMatch(categories)
+          ? 'series'
+          : 'movie';
       final media = entry['media\$thumbnail'];
       final poster = media is Map ? '${media['url'] ?? ''}' : _firstImage(_text(entry['content']));
       final published = _text(entry['published']);
@@ -109,6 +151,7 @@ class MoviesService {
         title: title,
         provider: 'MOVIESKURDISH',
         poster: poster,
+        kind: kind,
         releaseDate: published.isEmpty ? '' : published.split('T').first,
       ));
     }
@@ -134,7 +177,7 @@ class MoviesService {
         final map = _extractMap(json);
         if (map == null) continue;
         final updated = _movieFromMap(map, provider: movie.provider) ?? movie;
-        return MovieDetails(movie: updated, servers: _extractServers(map));
+        return MovieDetails(movie: updated, servers: _extractServers(map), seasons: _extractSeasons(map));
       } catch (_) {
         // Try the documented fallback route.
       }
@@ -166,7 +209,7 @@ class MoviesService {
       } catch (_) {
         return MovieDetails(movie: movie);
       }
-      return MovieDetails(movie: movie, servers: _deepServers(data));
+      return MovieDetails(movie: movie, servers: _deepServers(data), seasons: _extractSeasons(data));
     } catch (_) {
       return null;
     }
@@ -234,7 +277,7 @@ class MoviesService {
     return map;
   }
 
-  static MovieItem? _movieFromMap(Map<String, dynamic> map, {required String provider}) {
+  static MovieItem? _movieFromMap(Map<String, dynamic> map, {required String provider, String fallbackKind = 'movie'}) {
     String read(List<String> keys) {
       for (final key in keys) {
         final value = map[key];
@@ -248,6 +291,12 @@ class MoviesService {
     if (id.isEmpty || title.isEmpty) return null;
     final rawRating = map['rating'] ?? map['vote_average'];
     final rating = rawRating is num ? rawRating.toDouble() : double.tryParse('${rawRating ?? ''}');
+    final rawKind = read(['type', 'kind', 'media_type', 'content_type']).toLowerCase();
+    final kind = rawKind.contains('series') || rawKind == 'tv' || rawKind.contains('show')
+        ? 'series'
+        : rawKind.contains('movie')
+            ? 'movie'
+            : fallbackKind;
     final rawGenres = map['genres'] ?? map['genre'];
     final genres = rawGenres is List
         ? rawGenres.map((e) => e is Map ? '${e['name'] ?? ''}' : '$e')
@@ -264,7 +313,86 @@ class MoviesService {
       rating: rating,
       releaseDate: read(['releaseDate', 'release_date', 'year']),
       genres: genres,
+      kind: kind,
+      overview: read(['overview', 'description', 'synopsis', 'plot']),
     );
+  }
+
+  /// Extract seasons only when the provider includes real season data.
+  /// No undocumented season/episode endpoint is fabricated.
+  static List<MovieSeason> _extractSeasons(dynamic root) {
+    dynamic rows;
+    void find(dynamic node) {
+      if (rows != null) return;
+      if (node is Map) {
+        for (final entry in node.entries) {
+          if ('${entry.key}'.toLowerCase() == 'seasons' && entry.value is List) {
+            rows = entry.value;
+            return;
+          }
+        }
+        for (final value in node.values) {
+          if (value is Map || value is List) find(value);
+          if (rows != null) return;
+        }
+      } else if (node is List) {
+        for (final value in node) {
+          if (value is Map || value is List) find(value);
+          if (rows != null) return;
+        }
+      }
+    }
+    find(root);
+    if (rows is! List) return const [];
+    final result = <MovieSeason>[];
+    for (var index = 0; index < (rows as List).length; index++) {
+      final raw = rows[index];
+      if (raw is! Map) continue;
+      final map = Map<String, dynamic>.from(raw);
+      int numberOf(Map<String, dynamic> source, List<String> keys, int fallback) {
+        for (final key in keys) {
+          final value = source[key];
+          final parsed = value is num ? value.toInt() : int.tryParse('${value ?? ''}');
+          if (parsed != null) return parsed;
+        }
+        return fallback;
+      }
+      String textOf(Map<String, dynamic> source, List<String> keys, String fallback) {
+        for (final key in keys) {
+          final value = source[key];
+          if (value != null && '$value'.trim().isNotEmpty) return '$value'.trim();
+        }
+        return fallback;
+      }
+      final seasonNo = numberOf(map, ['season_number', 'seasonNumber', 'number', 'season'], index + 1);
+      dynamic rawEpisodes = map['episodes'] ?? map['items'] ?? map['results'];
+      if (rawEpisodes is Map) rawEpisodes = rawEpisodes['data'] ?? rawEpisodes['items'] ?? rawEpisodes['results'];
+      final episodes = <MovieEpisode>[];
+      if (rawEpisodes is List) {
+        for (var e = 0; e < rawEpisodes.length; e++) {
+          final value = rawEpisodes[e];
+          if (value is! Map) continue;
+          final episode = Map<String, dynamic>.from(value);
+          final episodeNo = numberOf(episode, ['episode_number', 'episodeNumber', 'number', 'episode'], e + 1);
+          episodes.add(MovieEpisode(
+            seasonNumber: seasonNo,
+            episodeNumber: episodeNo,
+            title: textOf(episode, ['title', 'name'], 'Episode $episodeNo'),
+            overview: textOf(episode, ['overview', 'description', 'synopsis'], ''),
+            poster: textOf(episode, ['still_path', 'poster', 'image'], ''),
+            servers: _deepServers(episode),
+          ));
+        }
+      }
+      result.add(MovieSeason(
+        number: seasonNo,
+        title: textOf(map, ['name', 'title'], seasonNo == 0 ? 'Specials' : 'Season $seasonNo'),
+        poster: textOf(map, ['poster', 'image', 'poster_url'], ''),
+        episodes: episodes,
+      ));
+    }
+    result.sort((a, b) => a.number.compareTo(b.number));
+    return result;
   }
 
   static List<MovieServer> _extractServers(Map<String, dynamic> map) {

@@ -39,6 +39,7 @@ class AppController extends ChangeNotifier {
   int bufferMb = 32;
   bool failover = true;
   bool autoReconnect = true;
+  bool autoPlayNextEpisode = true;
   bool landscape = true;
   bool gestures = true;
   int seekSecs = 10;
@@ -90,6 +91,7 @@ class AppController extends ChangeNotifier {
     bufferMb = _p.getInt('bufferMb') ?? bufferMb;
     failover = _p.getBool('failover') ?? failover;
     autoReconnect = _p.getBool('reconnect') ?? autoReconnect;
+    autoPlayNextEpisode = _p.getBool('autoPlayNextEpisode') ?? autoPlayNextEpisode;
     landscape = _p.getBool('landscape') ?? landscape;
     gestures = _p.getBool('gestures') ?? gestures;
     seekSecs = _p.getInt('seekSecs') ?? seekSecs;
@@ -155,6 +157,7 @@ class AppController extends ChangeNotifier {
   void setBufferMb(int v) { bufferMb = v; _p.setInt('bufferMb', v); notifyListeners(); }
   void setFailover(bool v) { failover = v; _p.setBool('failover', v); notifyListeners(); }
   void setAutoReconnect(bool v) { autoReconnect = v; _p.setBool('reconnect', v); notifyListeners(); }
+  void setAutoPlayNextEpisode(bool v) { autoPlayNextEpisode = v; _p.setBool('autoPlayNextEpisode', v); notifyListeners(); }
   void setLandscape(bool v) { landscape = v; _p.setBool('landscape', v); notifyListeners(); }
   void setGestures(bool v) { gestures = v; _p.setBool('gestures', v); notifyListeners(); }
   void setSeekSecs(int v) { seekSecs = v; _p.setInt('seekSecs', v); notifyListeners(); }

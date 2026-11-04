@@ -100,6 +100,13 @@ class SettingsPage extends StatelessWidget {
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
+              title: Text(c.t('autoPlayNextEpisode')),
+              subtitle: Text(c.t('autoPlayNextEpisodeSub'), style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12.5)),
+              value: c.autoPlayNextEpisode,
+              onChanged: c.setAutoPlayNextEpisode,
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
               title: Text(c.t('landscape')),
               value: c.landscape,
               onChanged: c.setLandscape,

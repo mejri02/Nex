@@ -220,6 +220,7 @@ class _PlayerPageState extends State<PlayerPage> {
     final s = sources[srcIdx];
     _started = false;
     _audioPicked = false;
+    _arabicSubtitlePicked = false;
     setState(() {
       selected = srcIdx;
       loading = true;
@@ -555,6 +556,7 @@ class _PlayerPageState extends State<PlayerPage> {
           selected: curTrack.subtitle.id == subs[i].id,
           onTap: () => player.setSubtitleTrack(subs[i]),
         ),
+      _Opt(app.t('loadSubtitle'), onTap: _externalSubtitleDialog),
       if (vids.length > 1) ...[
         _Opt(app.t('quality'), header: true),
         _Opt(app.t('auto'), selected: curTrack.video.id == 'auto', onTap: () => player.setVideoTrack(VideoTrack.auto())),
@@ -568,6 +570,64 @@ class _PlayerPageState extends State<PlayerPage> {
       ],
     ];
     _sheet(app.t('tracks'), opts);
+  }
+
+  Future<void> _externalSubtitleDialog() async {
+    final url = TextEditingController();
+    final language = TextEditingController(text: 'ar');
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(app.t('loadSubtitle')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: url,
+              autofocus: true,
+              keyboardType: TextInputType.url,
+              decoration: InputDecoration(
+                labelText: app.t('subtitleUrl'),
+                hintText: app.t('subtitleUrlHint'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: language,
+              decoration: InputDecoration(labelText: app.t('subtitleLanguageCode')),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: Text(app.t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: Text(app.t('load'))),
+        ],
+      ),
+    );
+    final value = url.text.trim();
+    final lang = language.text.trim();
+    url.dispose();
+    language.dispose();
+    if (accepted != true || !mounted) return;
+    final uri = Uri.tryParse(value);
+    if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http') || uri.host.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(app.t('invalidSubtitleUrl'))),
+      );
+      return;
+    }
+    try {
+      await player.setSubtitleTrack(SubtitleTrack.uri(
+        uri.toString(),
+        title: lang == 'ar' ? 'Arabic' : 'External subtitle',
+        language: lang.isEmpty ? null : lang,
+      ));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    }
+    _show();
   }
 
   void _serverSheet() {
