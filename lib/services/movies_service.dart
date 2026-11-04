@@ -27,29 +27,45 @@ class MovieItem {
   final List<String> genres;
 }
 
-/// A playable server reported by a provider API.
 class MovieServer {
   const MovieServer({required this.name, required this.url});
-
   final String name;
   final String url;
 }
 
-/// Provider-neutral response for a movie details request.
 class MovieDetails {
   const MovieDetails({required this.movie, this.servers = const []});
-
   final MovieItem movie;
   final List<MovieServer> servers;
 }
 
-/// Reads movie metadata from the public KURDFILM API.
-/// Other providers are intentionally added only after their request contracts
-/// (including any required POST body or authentication) have been verified.
+/// Aggregates public movie metadata. Provider playback links are only exposed
+/// when they are actually returned by the provider's detail response.
 class MoviesService {
   MoviesService({http.Client? client}) : _client = client ?? http.Client();
-
   final http.Client _client;
+
+  Future<List<MovieItem>> fetchMovies() async {
+    final results = await Future.wait<List<MovieItem>>([
+      _tryLoad(fetchKurdfilmMovies),
+      _tryLoad(fetchMoviesKurdishMovies),
+    ]);
+    final unique = <String, MovieItem>{};
+    for (final list in results) {
+      for (final movie in list) {
+        unique['${movie.provider}|${movie.id}'] = movie;
+      }
+    }
+    return unique.values.toList(growable: false);
+  }
+
+  Future<List<MovieItem>> _tryLoad(Future<List<MovieItem>> Function() load) async {
+    try {
+      return await load();
+    } catch (_) {
+      return const [];
+    }
+  }
 
   Future<List<MovieItem>> fetchKurdfilmMovies({int page = 1, int perPage = 100}) async {
     final uri = Uri.parse('${ApiConfig.kurdfilmBase}${ApiConfig.kurdfilmTitles}')
@@ -60,18 +76,58 @@ class MoviesService {
       'page': '$page',
     });
     final json = await _getJson(uri);
-    final rows = _extractList(json);
-    return rows
+    return _extractList(json)
         .map((row) => _movieFromMap(row, provider: 'KURDFILM'))
-        .where((movie) => movie != null)
-        .cast<MovieItem>()
+        .whereType<MovieItem>()
         .toList(growable: false);
+  }
+
+  Future<List<MovieItem>> fetchMoviesKurdishMovies({int maxResults = 24}) async {
+    final uri = Uri.https('www.movieskurdish.com', '/feeds/posts/default', {
+      'alt': 'json',
+      'max-results': '$maxResults',
+      'start-index': '1',
+    });
+    final json = await _getJson(uri);
+    final feed = json is Map ? json['feed'] : null;
+    final entries = feed is Map ? feed['entry'] : null;
+    if (entries is! List) return const [];
+    final movies = <MovieItem>[];
+    for (final item in entries) {
+      if (item is! Map) continue;
+      final entry = Map<String, dynamic>.from(item);
+      final idTag = _text(entry['id']);
+      final idMatch = RegExp(r'post-(\d+)').firstMatch(idTag);
+      final id = idMatch?.group(1) ?? '';
+      final title = _text(entry['title']);
+      if (id.isEmpty || title.isEmpty) continue;
+      final media = entry['media$thumbnail'];
+      final poster = media is Map ? '${media['url'] ?? ''}' : _firstImage(_text(entry['content']));
+      final published = _text(entry['published']);
+      movies.add(MovieItem(
+        id: id,
+        title: title,
+        provider: 'MOVIESKURDISH',
+        poster: poster,
+        releaseDate: published.isEmpty ? '' : published.split('T').first,
+      ));
+    }
+    return movies;
+  }
+
+  Future<MovieDetails?> fetchMovieDetails(MovieItem movie) {
+    switch (movie.provider) {
+      case 'KURDFILM':
+        return fetchKurdfilmDetails(movie);
+      case 'MOVIESKURDISH':
+        return fetchMoviesKurdishDetails(movie);
+      default:
+        return Future.value(null);
+    }
   }
 
   Future<MovieDetails?> fetchKurdfilmDetails(MovieItem movie) async {
     final id = Uri.encodeComponent(movie.id);
-    // The API has exposed both routes in different deployments. Try the
-    // movie-specific route first, then the generic title route.
     for (final path in ['/movies/$id', '/titles/$id']) {
       try {
         final json = await _getJson(Uri.parse('${ApiConfig.kurdfilmBase}$path'));
@@ -80,10 +136,40 @@ class MoviesService {
         final updated = _movieFromMap(map, provider: movie.provider) ?? movie;
         return MovieDetails(movie: updated, servers: _extractServers(map));
       } catch (_) {
-        // Continue to the documented fallback route.
+        // Try the documented fallback route.
       }
     }
     return null;
+  }
+
+  Future<MovieDetails?> fetchMoviesKurdishDetails(MovieItem movie) async {
+    final uri = Uri.https('www.movieskurdish.com', '/feeds/posts/default/${Uri.encodeComponent(movie.id)}', {'alt': 'json'});
+    try {
+      final json = await _getJson(uri);
+      final feed = json is Map ? json['entry'] ?? json['feed'] : null;
+      final entry = feed is Map && feed['entry'] is Map
+          ? Map<String, dynamic>.from(feed['entry'] as Map)
+          : feed is Map
+              ? Map<String, dynamic>.from(feed)
+              : null;
+      if (entry == null) return MovieDetails(movie: movie);
+      final html = _text(entry['content']);
+      final match = RegExp(
+        r'<textarea[^>]*id="video-data"[^>]*>([\s\S]*?)</textarea>',
+        caseSensitive: false,
+      ).firstMatch(html);
+      if (match == null) return MovieDetails(movie: movie);
+      final raw = _decodeHtml(match.group(1) ?? '');
+      dynamic data;
+      try {
+        data = jsonDecode(raw);
+      } catch (_) {
+        return MovieDetails(movie: movie);
+      }
+      return MovieDetails(movie: movie, servers: _deepServers(data));
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<dynamic> _getJson(Uri uri) async {
@@ -100,6 +186,26 @@ class MoviesService {
       throw const MoviesApiException('The provider returned invalid JSON.');
     }
   }
+
+  static String _text(dynamic value) {
+    if (value is Map) return '${value[r'$t'] ?? ''}'.trim();
+    return '${value ?? ''}'.trim();
+  }
+
+  static String _firstImage(String html) {
+    final match = RegExp(r'<img[^>]+src=["\x27]([^"\x27]+)', caseSensitive: false).firstMatch(html);
+    return match?.group(1) ?? '';
+  }
+
+  static String _decodeHtml(String value) => value
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#34;', '"')
+      .replaceAll('&#39;', "'")
+      .replaceAll('&apos;', "'")
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&amp;', '&')
+      .trim();
 
   static List<Map<String, dynamic>> _extractList(dynamic value) {
     if (value is List) {
@@ -128,10 +234,7 @@ class MoviesService {
     return map;
   }
 
-  static MovieItem? _movieFromMap(
-    Map<String, dynamic> map, {
-    required String provider,
-  }) {
+  static MovieItem? _movieFromMap(Map<String, dynamic> map, {required String provider}) {
     String read(List<String> keys) {
       for (final key in keys) {
         final value = map[key];
@@ -143,11 +246,8 @@ class MoviesService {
     final id = read(['id', 'movieId', 'movie_id', 'slug']);
     final title = read(['title', 'name', 'originalTitle']);
     if (id.isEmpty || title.isEmpty) return null;
-
     final rawRating = map['rating'] ?? map['vote_average'];
-    final rating = rawRating is num
-        ? rawRating.toDouble()
-        : double.tryParse('${rawRating ?? ''}');
+    final rating = rawRating is num ? rawRating.toDouble() : double.tryParse('${rawRating ?? ''}');
     final rawGenres = map['genres'] ?? map['genre'];
     final genres = rawGenres is List
         ? rawGenres.map((e) => e is Map ? '${e['name'] ?? ''}' : '$e')
@@ -155,7 +255,6 @@ class MoviesService {
         : rawGenres is String && rawGenres.trim().isNotEmpty
             ? rawGenres.split(',').map((e) => e.trim()).toList(growable: false)
             : const <String>[];
-
     return MovieItem(
       id: id,
       title: title,
@@ -183,13 +282,40 @@ class MoviesService {
     return result;
   }
 
+  static List<MovieServer> _deepServers(dynamic value) {
+    final result = <MovieServer>[];
+    final seen = <String>{};
+    void visit(dynamic node) {
+      if (node is Map) {
+        final map = Map<String, dynamic>.from(node);
+        final url = '${map['url'] ?? map['link'] ?? map['src'] ?? ''}'.trim();
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+          if (seen.add(url)) {
+            result.add(MovieServer(
+              name: '${map['name'] ?? map['title'] ?? 'SERVER ${result.length + 1}'}',
+              url: url,
+            ));
+          }
+        }
+        for (final child in map.values) {
+          if (child is Map || child is List) visit(child);
+        }
+      } else if (node is List) {
+        for (final child in node) {
+          if (child is Map || child is List) visit(child);
+        }
+      }
+    }
+    visit(value);
+    return result;
+  }
+
   void close() => _client.close();
 }
 
 class MoviesApiException implements Exception {
   const MoviesApiException(this.message);
   final String message;
-
   @override
   String toString() => message;
 }
