@@ -237,6 +237,8 @@ class _PlayerPageState extends State<PlayerPage> {
     setState(() {
       selected = srcIdx;
       loading = true;
+      playing = false;
+      buffering = false;
       error = null;
       vidW = 0;
       vidH = 0;
@@ -296,7 +298,7 @@ class _PlayerPageState extends State<PlayerPage> {
     } else {
       setState(() {
         loading = false;
-        error = sources.length > 1 && app.failover ? '${app.t('allFailed')}\n$reason' : reason;
+        error = sources.length > 1 ? '${app.t('allFailed')}\n$reason' : reason;
       });
       _show();
     }
@@ -1029,7 +1031,12 @@ class _PlayerPageState extends State<PlayerPage> {
                                       tip: app.t('more'),
                                       color: sleepMin > 0 || rate != 1 ? cs.primary : Colors.white,
                                     ),
-                                    _iconBtn(Icons.screen_rotation_rounded, _toggleOrientation, size: 42),
+                                    _iconBtn(
+                                      _landscape ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                                      _toggleOrientation,
+                                      size: 42,
+                                      tip: _landscape ? app.t('exitFullscreen') : app.t('fullscreen'),
+                                    ),
                                     _iconBtn(Icons.lock_outline_rounded, () => setState(() => locked = true), size: 42, tip: app.t('lock')),
                                     if (multi)
                                       _iconBtn(Icons.format_list_bulleted_rounded, () {
