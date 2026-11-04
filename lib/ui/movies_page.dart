@@ -88,17 +88,18 @@ class _MoviesPageState extends State<MoviesPage> {
       _message(app.t('movieDetailsUnavailable'));
       return;
     }
-    if (item.kind == 'series') {
-      if (details.seasons.isEmpty) {
-        _message(app.t('seriesDataUnavailable'));
-        return;
-      }
+    if (item.kind == 'series' && details.seasons.isNotEmpty) {
       final episode = await _pickEpisode(details.seasons);
       if (episode != null) await _playEpisode(item, details.seasons, episode);
       return;
     }
+
+    // Some providers return a playable title-level stream but omit season
+    // metadata. Prefer those real server URLs over a dead-end seasons message.
     if (details.servers.isEmpty) {
-      _message(app.t('movieServersUnavailable'));
+      _message(item.kind == 'series'
+          ? app.t('seriesDataUnavailable')
+          : app.t('movieServersUnavailable'));
       return;
     }
     final server = await _pickServer(item.title, details.servers);
@@ -106,7 +107,7 @@ class _MoviesPageState extends State<MoviesPage> {
     final channel = Channel(
       id: 'movie-${item.provider}-${item.id}',
       name: item.title,
-      group: 'Movies',
+      group: item.kind == 'series' ? 'Series' : 'Movies',
       logo: item.poster,
       sources: _orderedServers(server, details.servers),
     );
