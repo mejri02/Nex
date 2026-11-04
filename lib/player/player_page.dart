@@ -322,6 +322,8 @@ class _PlayerPageState extends State<PlayerPage> {
       ch = widget.playlist[n];
       sources = ch.sources;
       _historyAdded = false;
+      _audioPicked = false;
+      _arabicSubtitlePicked = false;
       duration = Duration.zero;
     });
     _failed.clear();
