@@ -34,24 +34,24 @@ class HomePage extends StatelessWidget {
                 child: Row(
                   children: [
                     Container(
-                      width: 46,
-                      height: 46,
+                      width: 52,
+                      height: 52,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(15),
+                        borderRadius: BorderRadius.circular(18),
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [cs.primary, cs.primary.withValues(alpha: 0.55)],
                         ),
                       ),
-                      child: Icon(Icons.play_arrow_rounded, color: cs.onPrimary, size: 31),
+                      child: Icon(Icons.live_tv_rounded, color: cs.onPrimary, size: 29),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('VYRA TV', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1.1)),
+                          const Text('VYRA TV', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900, letterSpacing: 1.35)),
                           Text(c.activeSource.name, maxLines: 1, overflow: TextOverflow.ellipsis,
                             style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
                         ],
@@ -191,7 +191,7 @@ class _FeaturedCard extends StatelessWidget {
         onTap: onPlay,
         radius: 26,
         child: Container(
-          constraints: const BoxConstraints(minHeight: 190),
+          constraints: const BoxConstraints(minHeight: 204),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(26),
             gradient: LinearGradient(
@@ -235,11 +235,11 @@ class _FeaturedCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Container(
-                width: 104,
-                height: 104,
+                width: 112,
+                height: 112,
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(24)),
-                child: Logo(url: channel.logo, size: 86, radius: 18, name: channel.name),
+                child: Logo(url: channel.logo, size: 94, radius: 20, name: channel.name),
               ),
             ],
           ),

@@ -66,6 +66,7 @@ class _PlayerPageState extends State<PlayerPage> {
   final Set<int> _failed = {};
   int _attempt = 0;
   int _reconnects = 0;
+  DateTime _ignoreErrorsUntil = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _lastStart = DateTime.now();
   bool _started = false;
   bool _historyAdded = false;
@@ -230,6 +231,7 @@ class _PlayerPageState extends State<PlayerPage> {
   Future<void> _open(int srcIdx) async {
     if (!mounted) return;
     final attempt = ++_attempt;
+    _ignoreErrorsUntil = DateTime.now().add(const Duration(milliseconds: 900));
     _watchdog?.cancel();
     final s = sources[srcIdx];
     _started = false;
@@ -253,6 +255,7 @@ class _PlayerPageState extends State<PlayerPage> {
       // Stop the old source so delayed events cannot mark it as the new source.
       await player.stop();
       if (!mounted || attempt != _attempt) return;
+      _ignoreErrorsUntil = DateTime.now().add(const Duration(milliseconds: 900));
       final headers = <String, String>{
         if (s.userAgent.isNotEmpty) 'User-Agent': s.userAgent,
         if (s.referer.isNotEmpty) 'Referer': s.referer,
@@ -290,8 +293,14 @@ class _PlayerPageState extends State<PlayerPage> {
     _stallWatchdog?.cancel();
     _failed.add(srcIdx);
     // Live TV always advances to the next available server after a failure.
-    final next = List<int>.generate(sources.length, (i) => i)
-        .firstWhere((i) => !_failed.contains(i), orElse: () => -1);
+    var next = -1;
+    for (var step = 1; step <= sources.length; step++) {
+      final candidate = (srcIdx + step) % sources.length;
+      if (!_failed.contains(candidate)) {
+        next = candidate;
+        break;
+      }
+    }
     if (next != -1) {
       _flash(Icons.swap_horiz_rounded, '${app.t('switching')} ${sources[next].name}');
       _open(next);
@@ -305,7 +314,7 @@ class _PlayerPageState extends State<PlayerPage> {
   }
 
   void _onError(String e) {
-    if (!mounted) return;
+    if (!mounted || DateTime.now().isBefore(_ignoreErrorsUntil)) return;
     // Network/decoder errors can happen after the first frame too.
     _started = false;
     _fail(selected, _attempt, e);

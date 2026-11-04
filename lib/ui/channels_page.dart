@@ -47,8 +47,20 @@ class _ChannelsPageState extends State<ChannelsPage> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: AlignmentDirectional.centerStart,
+                  end: AlignmentDirectional.centerEnd,
+                  colors: [cs.primary.withValues(alpha: 0.16), cs.surface.withValues(alpha: 0.72)],
+                ),
+                border: Border.all(color: cs.primary.withValues(alpha: 0.14)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
               children: [
                 Expanded(
                   child: Column(
@@ -71,6 +83,8 @@ class _ChannelsPageState extends State<ChannelsPage> {
                   icon: const Icon(Icons.refresh_rounded),
                 ),
               ],
+                ),
+              ),
             ),
           ),
           Padding(
