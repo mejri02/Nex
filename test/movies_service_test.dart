@@ -26,7 +26,14 @@ void main() {
           }), 200);
         }
         if (request.url.host == 'www.movieskurdish.com') {
-          return http.Response(jsonEncode({'feed': {'entry': []}}), 200);
+          return http.Response(jsonEncode({'feed': {'entry': [
+            {
+              'id': 'tag:blogger.com,1999:blog-1.post-123',
+              'title': {'\u0024t': 'Blogger Series'},
+              'category': [{'term': 'Series'}],
+              'published': {'\u0024t': '2026-01-01T00:00:00Z'},
+            },
+          ]}}), 200);
         }
         return http.Response('{}', 404);
       });
@@ -34,6 +41,7 @@ void main() {
       final items = await service.fetchMovies();
       expect(items.map((item) => item.id), containsAll(['movie-1', 'show-1']));
       expect(items.firstWhere((item) => item.id == 'show-1').kind, 'series');
+      expect(items.firstWhere((item) => item.id == '123').kind, 'series');
       service.close();
     });
 

@@ -138,7 +138,9 @@ class MoviesService {
       final title = _text(entry['title']);
       if (id.isEmpty || title.isEmpty) continue;
       final categories = (entry['category'] is List ? entry['category'] as List : const [])
-          .map(_text)
+          .map((category) => category is Map
+              ? '${category['term'] ?? category['name'] ?? category[r'$t'] ?? ''}'
+              : _text(category))
           .join(' ');
       final kind = RegExp(r'(series|show|tv|مسلسل|حلقات)', caseSensitive: false).hasMatch(categories)
           ? 'series'
