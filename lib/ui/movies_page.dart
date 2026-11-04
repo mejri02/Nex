@@ -146,7 +146,7 @@ class _MoviesPageState extends State<MoviesPage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: DropdownButtonFormField<int>(
-                      value: selected.number,
+                      initialValue: selected.number,
                       isExpanded: true,
                       decoration: InputDecoration(labelText: strings.t('season')),
                       items: [

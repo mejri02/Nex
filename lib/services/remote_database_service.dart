@@ -1,4 +1,3 @@
-import 'package:http/http.dart' as http;
 import 'api_client.dart';
 import 'api_config.dart';
 

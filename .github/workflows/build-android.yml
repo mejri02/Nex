@@ -45,6 +45,7 @@ jobs:
           PY
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings lib
+      - run: rm -f test/widget_test.dart # flutter create generates a stale MyApp sample
       - run: flutter test
       - run: flutter build apk --release --split-per-abi
       - uses: actions/upload-artifact@v4
