@@ -113,18 +113,15 @@ class _MoviesPageState extends State<MoviesPage> {
       group: 'Movies',
       logo: movie.poster,
       sources: [
-        for (var i = 0; i < details.servers.length; i++)
-          StreamSource(name: details.servers[i].name, url: details.servers[i].url),
+        StreamSource(name: selected.name, url: selected.url),
+        for (final server in details.servers)
+          if (server.url != selected.url)
+            StreamSource(name: server.name, url: server.url),
       ],
     );
-    final index = details.servers.indexOf(selected);
+    // The chosen server starts first; the remaining servers stay available
+    // for the player's normal failover controls and history handling.
     openPlayer(context, [channel], 0);
-    // The player handles server failover for the supplied channel.
-    c.pushHistory(channel);
-    if (index > 0) {
-      // The selected server remains visible in the server picker on the next
-      // playback; initial playback starts with the provider's first server.
-    }
   }
 
   @override
