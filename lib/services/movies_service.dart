@@ -101,7 +101,7 @@ class MoviesService {
       final id = idMatch?.group(1) ?? '';
       final title = _text(entry['title']);
       if (id.isEmpty || title.isEmpty) continue;
-      final media = entry['media$thumbnail'];
+      final media = entry['media\$thumbnail'];
       final poster = media is Map ? '${media['url'] ?? ''}' : _firstImage(_text(entry['content']));
       final published = _text(entry['published']);
       movies.add(MovieItem(
