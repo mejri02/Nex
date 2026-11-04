@@ -2,9 +2,14 @@
 const Map<String, List<String>> _s = {
   // navigation
   'home': ['الرئيسية', 'Home'],
+  'movies': ['الأفلام', 'Movies'],
   'channels': ['القنوات', 'Channels'],
   'favorites': ['المفضلة', 'Favorites'],
   'settings': ['الإعدادات', 'Settings'],
+  'searchMovies': ['ابحث عن فيلم أو تصنيف', 'Search movies or genres'],
+  'moviesLoadFailed': ['تعذّر تحميل الأفلام', 'Could not load movies'],
+  'noMovies': ['لا توجد أفلام مطابقة', 'No matching movies'],
+  'movieServersUnavailable': ['لم يعثر التطبيق على روابط تشغيل مؤكدة لهذا الفيلم.', 'No verified playback servers were found for this movie.'],
   // home
   'continueWatching': ['تابع المشاهدة', 'Continue watching'],
   'resume': ['استئناف', 'Resume'],
