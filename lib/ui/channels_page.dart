@@ -47,7 +47,34 @@ class _ChannelsPageState extends State<ChannelsPage> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 8, 6),
+            padding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(c.t('channels'), style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${c.totalCount} · ${c.activeSource.name}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton.filledTonal(
+                  tooltip: c.t('refreshNow'),
+                  onPressed: c.loading ? null : () => c.loadChannels(force: true),
+                  icon: const Icon(Icons.refresh_rounded),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
             child: Row(
               children: [
                 Expanded(
