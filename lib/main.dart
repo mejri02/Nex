@@ -6,6 +6,7 @@ import 'core/theme.dart';
 import 'ui/channels_page.dart';
 import 'ui/favorites_page.dart';
 import 'ui/home_page.dart';
+import 'ui/movies_page.dart';
 import 'ui/settings_page.dart';
 
 Future<void> main() async {
@@ -76,12 +77,13 @@ class _ShellState extends State<Shell> {
 
     final pages = <Widget>[
       HomePage(
-        onOpenChannels: () => _go(1),
+        onOpenChannels: () => _go(2),
         onOpenGroup: (g) {
           c.setGroupFilter(g);
-          _go(1);
+          _go(2);
         },
       ),
+      const MoviesPage(),
       const ChannelsPage(),
       const FavoritesPage(),
       const SettingsPage(),
@@ -89,6 +91,7 @@ class _ShellState extends State<Shell> {
 
     final dests = [
       (Icons.home_outlined, Icons.home_rounded, c.t('home')),
+      (Icons.movie_outlined, Icons.movie_rounded, c.t('movies')),
       (Icons.live_tv_outlined, Icons.live_tv_rounded, c.t('channels')),
       (Icons.star_border_rounded, Icons.star_rounded, c.t('favorites')),
       (Icons.settings_outlined, Icons.settings_rounded, c.t('settings')),
