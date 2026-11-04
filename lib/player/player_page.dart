@@ -71,6 +71,7 @@ class _PlayerPageState extends State<PlayerPage> {
   bool _historyAdded = false;
   bool _audioPicked = false;
   Timer? _watchdog;
+  Timer? _stallWatchdog;
 
   // player state
   bool playing = false;
@@ -137,7 +138,16 @@ class _PlayerPageState extends State<PlayerPage> {
         _scheduleHide();
       }),
       player.stream.buffering.listen((v) {
-        if (mounted) setState(() => buffering = v);
+        if (!mounted) return;
+        setState(() => buffering = v);
+        _stallWatchdog?.cancel();
+        if (v && _started && playing) {
+          _stallWatchdog = Timer(const Duration(seconds: 20), () {
+            if (!mounted || !_started || !buffering || !playing) return;
+            _started = false;
+            _fail(selected, _attempt, app.t('timeout'));
+          });
+        }
       }),
       player.stream.position.listen((v) {
         position.value = v;
@@ -179,6 +189,7 @@ class _PlayerPageState extends State<PlayerPage> {
   @override
   void dispose() {
     _watchdog?.cancel();
+    _stallWatchdog?.cancel();
     _hide?.cancel();
     _sleep?.cancel();
     _flashTimer?.cancel();
@@ -246,6 +257,7 @@ class _PlayerPageState extends State<PlayerPage> {
     if (_started || !mounted) return;
     _started = true;
     _watchdog?.cancel();
+    _stallWatchdog?.cancel();
     _lastStart = DateTime.now();
     if (!_historyAdded) {
       _historyAdded = true;
@@ -260,6 +272,7 @@ class _PlayerPageState extends State<PlayerPage> {
   void _fail(int srcIdx, int attempt, String reason) {
     if (!mounted || attempt != _attempt || _started) return;
     _watchdog?.cancel();
+    _stallWatchdog?.cancel();
     _failed.add(srcIdx);
     final next = app.failover
         ? List<int>.generate(sources.length, (i) => i).firstWhere((i) => !_failed.contains(i), orElse: () => -1)
