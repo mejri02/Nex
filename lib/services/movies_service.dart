@@ -69,9 +69,15 @@ class MoviesService {
   final http.Client _client;
 
   Future<List<MovieItem>> fetchMovies() async {
+    // Do not query the same KURDFILM collection twice with kind=movie
+    // and kind=series until the provider's filtering contract is verified.
+    // Some APIs ignore unknown filters; applying fallbackKind='series' to
+    // every row from such a response incorrectly turns the whole catalog
+    // into series and makes every title show the missing-seasons message.
+    // The movie catalog still preserves actual series when the response
+    // supplies an explicit type/kind field.
     final results = await Future.wait<List<MovieItem>>([
       _tryLoad(fetchKurdfilmMovies),
-      _tryLoad(fetchKurdfilmSeries),
       _tryLoad(fetchMoviesKurdishMovies),
     ]);
     final unique = <String, MovieItem>{};
